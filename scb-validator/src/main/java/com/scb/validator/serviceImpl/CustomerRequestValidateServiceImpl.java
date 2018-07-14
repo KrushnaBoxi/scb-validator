@@ -10,13 +10,17 @@ import com.scb.validator.model.CustomerRequestData;
 import com.scb.validator.model.CustomerValidateResponse;
 import com.scb.validator.model.MsValidateConfig;
 import com.scb.validator.repository.CustomerRequestValidateRepo;
+import com.scb.validator.repository.MsConfigDataRepo;
 import com.scb.validator.service.CustomerRequestValidateService;
 
 @Component
 public class CustomerRequestValidateServiceImpl implements CustomerRequestValidateService {
-	@Autowired
+	/*@Autowired
 	private CustomerRequestValidateRepo customerRequestValidateRepo;
-
+*/
+	@Autowired
+	private MsConfigDataRepo msConfigDataRepo;
+	
 	@Override
 	public CustomerValidateResponse validateCustomerRequest(CustomerRequestData customerRequestData) {
 
@@ -26,17 +30,40 @@ public class CustomerRequestValidateServiceImpl implements CustomerRequestValida
 	private CustomerValidateResponse validateRequest(CustomerRequestData customerRequestData) {
 		CustomerValidateResponse customerValidateResponse = new CustomerValidateResponse();
 		customerValidateResponse.setResponseCode(400);
+		
 		customerValidateResponse.setCustomerRequestData(customerRequestData);
 		if (null == customerRequestData) {
 			customerValidateResponse.setResponseMessage("Customer details empty");
+			customerValidateResponse.setDownstream_protocol(getDownstreamProtocolValue());
 			customerValidateResponse.setValidRequest(false);
 			return customerValidateResponse;
 		} else {
-			return checkFieldsWithMappingTable(customerRequestData);
+			return checkFieldsWithMsConfigTable(customerRequestData);
 		}
 	}
 
-	private CustomerValidateResponse checkFieldsWithMappingTable(CustomerRequestData customerRequestData) {
+	private CustomerValidateResponse checkFieldsWithMsConfigTable(CustomerRequestData customerRequestData) {
+		CustomerValidateResponse customerValidateResponse = new CustomerValidateResponse();
+		customerValidateResponse.setDownstream_protocol(getDownstreamProtocolValue());
+		customerValidateResponse.setResponseCode(400);
+		customerValidateResponse.setResponseMessage("Validation failed");
+		String[] countryRegion = getCountryValue().split(",");
+		boolean countryValidate = false;
+		for (String country : countryRegion) {
+			if (country.equalsIgnoreCase(customerRequestData.getCustomerRegion())) {
+				countryValidate = true;
+			}
+		}
+		
+		if(customerRequestData.getCustomerName().length() <= getMaxCustomerNameLength() && countryValidate){
+			customerValidateResponse.setCustomerRequestData(customerRequestData);
+			customerValidateResponse.setResponseCode(200);
+			customerValidateResponse.setResponseMessage("Validation Success");
+		}
+		return customerValidateResponse;
+	}
+
+	/*private CustomerValidateResponse checkFieldsWithMappingTable(CustomerRequestData customerRequestData) {
 		CustomerValidateResponse customerValidateResponse = new CustomerValidateResponse();
 
 		Field[] fields = CustomerRequestData.class.getDeclaredFields();
@@ -47,7 +74,7 @@ public class CustomerRequestValidateServiceImpl implements CustomerRequestValida
 			for (MsValidateConfig dbFieldValue : ssValidateConfigValue) {
 
 				if (dbFieldValue.getIsRequireToValidate().equalsIgnoreCase("yes")) {
-					/*
+					
 					 * if(dbFieldValue.getFieldValue() != null){ String[]
 					 * countryRegion = dbFieldValue.getFieldValue().split(",");
 					 * for (String country : countryRegion) { if
@@ -60,7 +87,7 @@ public class CustomerRequestValidateServiceImpl implements CustomerRequestValida
 					 * ); customerValidateResponse.setResponseCode(400);
 					 * customerValidateResponse.setValidRequest(false); return
 					 * customerValidateResponse; } }
-					 */
+					 
 
 					for (Field classField : fields) {
 						if (classField.getName().trim().equalsIgnoreCase(dbFieldValue.getFieldName().trim())) {
@@ -104,6 +131,21 @@ public class CustomerRequestValidateServiceImpl implements CustomerRequestValida
 		customerValidateResponse.setResponseMessage("Successfully validated");
 		customerValidateResponse.setValidRequest(true);
 		return customerValidateResponse;
-	}
+	}*/
 
+	private String getDownstreamProtocolValue(){
+		String downstreamProtocolValue = msConfigDataRepo.getValue("ALL", "ALL", "DOWNSTREAM_PROTOCOL");
+		return downstreamProtocolValue;
+	}
+	
+	private String getCountryValue(){
+		String countryValue = msConfigDataRepo.getValue("ALL", "ALL", "COUNTRY");
+		return countryValue;
+	}
+	
+	private int getMaxCustomerNameLength(){
+		String maxCustomerNameLength = msConfigDataRepo.getValue("ALL", "ALL", "MAX_LENGTH","customerName");
+		int maxCustomerNameLengthInt = Integer.parseInt(maxCustomerNameLength);
+		return maxCustomerNameLengthInt;
+	}
 }

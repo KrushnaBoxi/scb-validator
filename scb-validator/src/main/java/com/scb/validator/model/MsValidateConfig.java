@@ -14,20 +14,20 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 
-@Entity@Getter @Setter @NoArgsConstructor @AllArgsConstructor @ToString @Builder 
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor @ToString @Builder 
 public class MsValidateConfig {
-	@Id
-	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	//@Id
+	//@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private int refId;
-	@Column
+	//@Column
 	private String fieldName;
-	@Column
+	//@Column
 	private String fieldValue;
-	@Column
+	//@Column
 	private int maxLength;
-	@Column
+	//@Column
 	private int minLength;
-	@Column
+	//@Column
 	private String isRequireToValidate;
 
 }
